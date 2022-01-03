@@ -19,6 +19,7 @@ import fr.ans.psc.pscload.state.exception.SerFileGenerationException;
 import fr.ans.psc.pscload.state.exception.LoadProcessException;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -116,6 +117,10 @@ public class Runner {
                         process.nextStep();
                         // End of scheduled steps
                     } else {
+                    	File txtfile = new File(process.getExtractedFilename());
+                    	txtfile.delete();
+                    	File lockfile = new File(process.getTmpMapsPath());
+                    	lockfile.delete();
                         processRegistry.unregister(id);
                     }
                 } catch (LoadProcessException e) {
