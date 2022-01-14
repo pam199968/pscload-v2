@@ -69,6 +69,20 @@ variable "datacenter" {
   type    = string
   default = "dc1"
 }
+variable "proxy_port" {
+  type = string
+  default = ""
+}
+
+variable "proxy_host" {
+  type = string
+  default = ""
+}
+
+variable "non_proxy_hosts" {
+  type = string
+  default = "10.0.0.0/8"
+}
 
 variable "dockerfile_path" {
   type = string
