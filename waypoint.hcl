@@ -22,6 +22,7 @@ app "prosanteconnect/pscload-v2" {
   build {
     use "docker" {
       dockerfile = "${path.app}/${var.dockerfile_path}"
+      insecure = true
     }
     # Uncomment below to use a remote docker registry to push your built images.
     registry {
