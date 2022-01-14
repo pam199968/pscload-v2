@@ -1,36 +1,36 @@
 project = "prosanteconnect/pscload-v2"
 
 # Labels can be specified for organizational purposes.
-labels = {
-  "domaine" = "psc"
-}
+labels = { "domaine" = "psc" }
 
 runner {
-  enabled = true
-  data_source "git" {
-    url = "https://github.com/prosanteconnect/pscload-v2.git"
-    ref = var.datacenter
-  }
-  poll {
     enabled = true
-  }
+    data_source "git" {
+        url = "https://github.com/pam199968/pscload-v2.git"
+        ref = "main"
+    }
+    poll {
+        enabled = true
+        interval = "24h"
+    }
 }
 
 # An application to deploy.
 app "prosanteconnect/pscload-v2" {
-  # Build specifies how an application should be deployed. In this case,
-  # we'll build using a Dockerfile and keeping it in a local registry.
+  # the Build step is required and specifies how an application image should be built and published. In this case,
+  # we use docker-pull, we simply pull an image as is.
   build {
     use "docker" {
       dockerfile = "${path.app}/${var.dockerfile_path}"
-      disable_entrypoint = true
     }
     # Uncomment below to use a remote docker registry to push your built images.
     registry {
       use "docker" {
-        image = "${var.registry_path}/pscload-v2"
-        tag = gitrefpretty()
-        encoded_auth = filebase64("/secrets/dockerAuth.json")
+        image = "${var.registry_path}/pscload"
+        tag   = gitrefpretty()
+        insecure = true
+        username = var.registry_username
+        password = var.registry_password
       }
     }
   }
@@ -49,24 +49,25 @@ app "prosanteconnect/pscload-v2" {
   }
 }
 
+variable "registry_username" {
+  type    = string
+  default = dynamic("vault", {
+    path = "waypoint/waypoint_runner"
+    key  = "registry_user"
+  })
+}
+
+variable "registry_password" {
+  type    = string
+  default = dynamic("vault", {
+    path = "waypoint/waypoint_runner"
+    key  = "registry_password"
+  })
+}
+
 variable "datacenter" {
-  type = string
+  type    = string
   default = "dc1"
-}
-
-variable "proxy_port" {
-  type = string
-  default = ""
-}
-
-variable "proxy_host" {
-  type = string
-  default = ""
-}
-
-variable "non_proxy_hosts" {
-  type = string
-  default = "10.0.0.0/8"
 }
 
 variable "dockerfile_path" {
