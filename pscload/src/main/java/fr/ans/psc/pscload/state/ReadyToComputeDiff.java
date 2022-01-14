@@ -3,6 +3,21 @@
  */
 package fr.ans.psc.pscload.state;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
+import fr.ans.psc.pscload.metrics.CustomMetrics;
+import fr.ans.psc.pscload.metrics.CustomMetrics.ID_TYPE;
+import fr.ans.psc.pscload.metrics.CustomMetrics.SizeMetric;
+import fr.ans.psc.pscload.model.MapsHandler;
+import fr.ans.psc.pscload.model.entities.Professionnel;
+import fr.ans.psc.pscload.model.entities.Structure;
+import fr.ans.psc.pscload.state.exception.DiffException;
+import fr.ans.psc.pscload.state.exception.LoadProcessException;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -10,23 +25,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
-
-import com.univocity.parsers.common.DataProcessingException;
-import fr.ans.psc.pscload.metrics.CustomMetrics;
-import fr.ans.psc.pscload.metrics.CustomMetrics.SizeMetric;
-import fr.ans.psc.pscload.metrics.CustomMetrics.ID_TYPE;
-import fr.ans.psc.pscload.model.MapsHandler;
-import fr.ans.psc.pscload.model.entities.Professionnel;
-import fr.ans.psc.pscload.model.entities.Structure;
-import fr.ans.psc.pscload.state.exception.DiffException;
-import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * The Class ReadyToComputeDiff.
@@ -100,6 +98,8 @@ public class ReadyToComputeDiff extends ProcessState {
 	private void fillChangesMaps(MapDifference<String, Professionnel> diffPs,
 			MapDifference<String, Structure> diffStructures) {
 
+		log.info("filling changes maps");
+
 		process.getMaps()
 		.stream().forEach(map -> {
 			switch (map.getOperation()) {
@@ -152,35 +152,13 @@ public class ReadyToComputeDiff extends ProcessState {
 		log.info("Cleaning files repository, removing all but latest files");
 		Map<String, List<File>> filesMap = zipsTextsNSers(new File(filesDirectory).listFiles());
 
-		List<File> listOfZips = filesMap.get("zips");
-		List<File> listOfExtracts = filesMap.get("txts");
-		List<File> listOfSers = filesMap.get("sers");
-
-		// Order files lists from oldest to newest by comparing parsed dates,
-		// but honestly same result if we had used file name String to compare
-		listOfZips.sort(this::compare);
-		listOfExtracts.sort(this::compare);
-		listOfSers.sort(this::compare);
-
-		if (listOfZips.size() > 0) {
-			listOfZips.remove(listOfZips.size() - 1);
-		}
-		if (listOfExtracts.size() > 0) {
-			listOfExtracts.remove(listOfExtracts.size() - 1);
-		}
-		if (listOfSers.size() > 0) {
-			listOfSers.remove(listOfSers.size() - 1);
-		}
-
-		for (File file : listOfZips) {
-			file.delete();
-		}
-		for (File file : listOfExtracts) {
-			file.delete();
-		}
-		for (File file : listOfSers) {
-			file.delete();
-		}
+		filesMap.values().forEach(filesList -> {
+			filesList.sort(this::compare);
+			if (filesList.size() > 0) {
+				filesList.remove(filesList.size() - 1);
+				filesList.forEach(file -> file.delete());
+			}
+		});
 	}
 
 	/**
@@ -193,15 +171,15 @@ public class ReadyToComputeDiff extends ProcessState {
 		Map<String, List<File>> filesMap = new HashMap<>();
 		filesMap.put("zips", new ArrayList<>());
 		filesMap.put("txts", new ArrayList<>());
-		filesMap.put("sers", new ArrayList<>());
+		filesMap.put("locks", new ArrayList<>());
 
 		for (File file : listOfFiles != null ? listOfFiles : new File[0]) {
-			if (file.getName().endsWith(".ser")) {
-				filesMap.get("sers").add(file);
-			} else if (file.getName().endsWith(".zip")) {
+			if (file.getName().endsWith(".zip")) {
 				filesMap.get("zips").add(file);
 			} else if (file.getName().endsWith(".txt")) {
 				filesMap.get("txts").add(file);
+			} else if (file.getName().endsWith(".lock")) {
+				filesMap.get("locks").add(file);
 			}
 		}
 		return filesMap;

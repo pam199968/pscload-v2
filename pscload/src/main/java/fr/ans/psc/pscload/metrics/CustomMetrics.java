@@ -3,18 +3,17 @@
  */
 package fr.ans.psc.pscload.metrics;
 
+import fr.ans.psc.pscload.model.Stage;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import org.springframework.stereotype.Component;
+
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-
-import fr.ans.psc.pscload.model.Stage;
-import org.springframework.stereotype.Component;
-
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
 
 /**
  * The Class CustomMetrics.
@@ -236,14 +235,15 @@ public class CustomMetrics {
 		// reset all PsSizeMetrics
 		Arrays.stream(CustomMetrics.ID_TYPE.values()).forEach(id_type -> {
 			Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
-				String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.PS.name(), operation.name(),
-						id_type.name(), "SIZE");
+				String metricKey = String.join("_",
+						CustomMetrics.ENTITY_TYPE.PS.name(), operation.name(), id_type.name(), "SIZE");
 				appSizeGauges.get(SizeMetric.valueOf(metricKey)).set(-1);
 			});
 		});
 		// reset all StructureSizeMetrics
 		Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
-			String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
+			String metricKey = String.join("_",
+					CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
 			appSizeGauges.get(CustomMetrics.SizeMetric.valueOf(metricKey)).set(-1);
 		});
 	}

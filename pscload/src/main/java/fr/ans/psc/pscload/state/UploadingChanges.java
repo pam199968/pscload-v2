@@ -6,12 +6,11 @@ package fr.ans.psc.pscload.state;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
 import fr.ans.psc.pscload.model.entities.RassEntity;
 import fr.ans.psc.pscload.model.operations.OperationMap;
 import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import fr.ans.psc.pscload.visitor.MapsVisitor;
 import fr.ans.psc.pscload.visitor.MapsUploaderVisitorImpl;
+import fr.ans.psc.pscload.visitor.MapsVisitor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,6 +44,7 @@ public class UploadingChanges extends ProcessState {
 
 	@Override
     public void nextStep() throws LoadProcessException {
+        log.info("UploadingChanges: nextStep()");
     	
 		MapsVisitor visitor = new MapsUploaderVisitorImpl(excludedProfessions, apiBaseUrl);
 		for (OperationMap<String, RassEntity> map : process.getMaps()) {

@@ -69,7 +69,7 @@ EOH
         env = true
         data = <<EOH
 PUBLIC_HOSTNAME={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.public_hostname }}{{ end }}
-JAVA_TOOL_OPTIONS="-Xms1g -Xmx6g -XX:+UseG1GC -Dspring.config.location=/secrets/application.properties -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port} -Dhttps.nonProxyHosts=${non_proxy_hosts}"
+JAVA_TOOL_OPTIONS="-Xms1g -Xmx8g -XX:+UseG1GC -Dspring.config.location=/secrets/application.properties -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port} -Dhttps.nonProxyHosts=${non_proxy_hosts}"
 EOH
       }
       template {
@@ -86,7 +86,7 @@ test.download.url={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.test_do
 use.x509.auth=true
 keystore.password={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.keystore_password }}{{ end }}
 enable.scheduler={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.enable_scheduler }}{{ end }}
-schedule.cron.expression = 0 */10 * * * ?
+schedule.cron.expression = 0 0 12,15,18,21 * * ?
 schedule.cron.timeZone = Europe/Paris
 process.expiration.delay=12
 management.endpoints.web.exposure.include=health,info,prometheus,metric
@@ -97,17 +97,18 @@ spring.mail.host={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_
 spring.mail.port={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_port }}{{ end }}
 spring.mail.username={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_username }}{{ end }}
 spring.mail.password={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_password }}{{ end }}
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.auth={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_smtp_auth }}{{ end }}
+spring.mail.properties.mail.smtp.starttls.enable={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_smtp_starttls_enable }}{{ end }}
 pscload.mail.receiver={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.mail_receiver }}{{ end }}
-enable.emailing=false
+enable.emailing=true
+{{ with secret "psc-ecosystem/pscload" }}debug={{ .Data.data.debug }}{{ end }}
 EOF
         destination = "secrets/application.properties"
         change_mode = "restart"
       }
       resources {
         cpu = 300
-        memory = 7168
+        memory = 9216
       }
       service {
         name = "$\u007BNOMAD_JOB_NAME\u007D"

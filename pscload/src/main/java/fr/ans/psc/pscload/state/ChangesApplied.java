@@ -3,33 +3,32 @@
  */
 package fr.ans.psc.pscload.state;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import fr.ans.psc.pscload.model.Stage;
-import fr.ans.psc.pscload.service.EmailService;
-import org.springframework.http.HttpMethod;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.EmailTemplate;
 import fr.ans.psc.pscload.model.MapsHandler;
+import fr.ans.psc.pscload.model.Stage;
+import fr.ans.psc.pscload.service.EmailService;
 import fr.ans.psc.pscload.state.exception.ExtractTriggeringException;
 import fr.ans.psc.pscload.state.exception.SerFileGenerationException;
 import fr.ans.psc.pscload.visitor.MapsCleanerVisitorImpl;
 import fr.ans.psc.pscload.visitor.MapsVisitor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * The Class ChangesApplied.
@@ -41,7 +40,7 @@ public class ChangesApplied extends ProcessState {
     private String extractBaseUrl;
     private EmailService emailService;
 
-    private final String FAILURE_REPORT_FILENAME = "PSCLOAD_changements_en_échec.";
+    private final String FAILURE_REPORT_FILENAME = "PSCLOAD_changements_en_echec.";
 
     public ChangesApplied() {
         super();
@@ -67,6 +66,7 @@ public class ChangesApplied extends ProcessState {
 
     @Override
     public void nextStep() {
+        log.info("ChangesApplied : nextStep()");
     	//First step
     	processRemainingPS();
     	// after this memory is cleared
@@ -106,7 +106,7 @@ public class ChangesApplied extends ProcessState {
                 MapsVisitor cleaner = new MapsCleanerVisitorImpl(newMaps, dataLines);
                 // Clean all maps and collect reports infos
                 process.getMaps().stream().forEach(map -> {
-                	message.append(String.format("%s en échec : %s", map.getOperation().toString(), map.size()));
+                	message.append(String.format("%s en échec : %s\n", map.getOperation().toString(), map.size()));
                 	map.accept(cleaner);
                 });
 
@@ -117,13 +117,13 @@ public class ChangesApplied extends ProcessState {
                 DateFormat df = new SimpleDateFormat("yyyMMddhhmm");
                 String now = df.format(new Date());
                 File csvOutputFile = new File(serFile.getParent(), FAILURE_REPORT_FILENAME + now + ".csv");
-                try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
-                    pw.println("Entité/opération;identifiant;Http status");
-                    dataLines.stream().forEach(pw::println);
-                }
+                File zipFile = generateReport(csvOutputFile, dataLines);
+
                 customMetrics.setStageMetric(Stage.UPLOAD_CHANGES_FINISHED);
-                emailService.sendMail(EmailTemplate.UPLOAD_INCOMPLETE, message.toString(), csvOutputFile);
+                emailService.sendMail(EmailTemplate.UPLOAD_INCOMPLETE, message.toString(), zipFile);
                 csvOutputFile.delete();
+                zipFile.delete();
+
             } else {
                 customMetrics.setStageMetric(Stage.UPLOAD_CHANGES_FINISHED);
                 emailService.sendMail(EmailTemplate.PROCESS_FINISHED,
@@ -132,7 +132,8 @@ public class ChangesApplied extends ProcessState {
             }
             serFile.delete();
             newMaps.serializeMaps(serFileName);
-            lockedSerFile.delete();
+            boolean deleted = lockedSerFile.delete();
+            log.info("Lock file deleted ? {}", deleted);
             customMetrics.setStageMetric(Stage.CURRENT_MAP_SERIALIZED);
 
 
@@ -141,6 +142,33 @@ public class ChangesApplied extends ProcessState {
             throw new SerFileGenerationException("Error during serialization");
         }
 	}
+
+    private File generateReport(File csvOutputFile, List<String> dataLines) throws FileNotFoundException {
+        String folderPath = csvOutputFile.getParent();
+        try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
+            pw.println("Entité/opération;identifiant;Http status");
+            dataLines.stream().forEach(pw::println);
+        }
+
+        try {
+            InputStream fileContent = new FileInputStream(csvOutputFile);
+            ZipEntry zipEntry = new ZipEntry(FAILURE_REPORT_FILENAME + ".csv");
+            zipEntry.setTime(System.currentTimeMillis());
+            ZipOutputStream zos = new ZipOutputStream(
+                    new FileOutputStream(folderPath + File.separator + FAILURE_REPORT_FILENAME + ".zip"));
+            zos.putNextEntry(zipEntry);
+            StreamUtils.copy(fileContent, zos);
+
+            fileContent.close();
+            zos.closeEntry();
+            zos.finish();
+            zos.close();
+        } catch (IOException e) {
+            log.error("Error during zipping", e);
+        }
+
+        return new File(folderPath, FAILURE_REPORT_FILENAME + ".zip");
+    }
 
 
     @Override

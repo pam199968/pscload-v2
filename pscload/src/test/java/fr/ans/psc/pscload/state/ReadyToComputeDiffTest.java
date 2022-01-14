@@ -3,9 +3,7 @@
  */
 package fr.ans.psc.pscload.state;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -77,8 +75,7 @@ class ReadyToComputeDiffTest {
 			}
 		}
 
-		httpMockServer.stubFor(any(urlMatching("/generate-extract"))
-				.willReturn(aResponse().withStatus(200)));
+		httpMockServer.stubFor(any(anyUrl()).willReturn(aResponse().withStatus(200)));
 	}
 
 	/**
@@ -123,6 +120,10 @@ class ReadyToComputeDiffTest {
 		LoadProcess p = new LoadProcess(new ReadyToComputeDiff(customMetrics));
 		File extractFile = FileUtils.copyFileToWorkspace("Extraction_ProSanteConnect_Personne_activite_202112120512.txt");
 		p.setExtractedFilename(extractFile.getPath());
+		p.nextStep();
+		String[] exclusions = {"90"};
+		p.setState(new UploadingChanges(exclusions, httpMockServer.baseUrl()));
+		p.getState().setProcess(p);
 		p.nextStep();
 		p.setState(new ChangesApplied(customMetrics, httpMockServer.baseUrl(), emailService));
 		p.getState().setProcess(p);

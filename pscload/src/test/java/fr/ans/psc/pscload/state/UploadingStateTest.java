@@ -3,12 +3,7 @@
  */
 package fr.ans.psc.pscload.state;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.delete;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.put;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -133,11 +128,7 @@ public class UploadingStateTest {
     @Test
     @DisplayName("Call delete API with return code 200")
     void uploadChangesDeletePS() throws Exception {
-        httpApiMockServer.stubFor(delete("/v2/ps/810107592544")
-                .willReturn(aResponse().withStatus(200)));
-        httpApiMockServer.stubFor(put("/v2/structure")
-                .willReturn(aResponse().withStatus(200)));
-        httpApiMockServer.stubFor(any(urlMatching("/generate-extract")).willReturn(aResponse().withStatus(200)));
+        httpApiMockServer.stubFor(any(anyUrl()).willReturn(aResponse().withStatus(200)));
         //Test
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         String rootpath = cl.getResource("work").getPath();
@@ -151,9 +142,20 @@ public class UploadingStateTest {
         p.setExtractedFilename(extractFile1.getPath());
         p.getState().setProcess(p);
         p.nextStep();
+        String[] exclusions = {"90"};
+        p.setState(new UploadingChanges(exclusions, httpApiMockServer.baseUrl()));
+        p.getState().setProcess(p);
+        p.nextStep();
         p.setState(new ChangesApplied(customMetrics, httpApiMockServer.baseUrl(), emailService));
         p.getState().setProcess(p);
         p.nextStep();
+
+
+        httpApiMockServer.stubFor(delete("/v2/ps/810107592544")
+                .willReturn(aResponse().withStatus(200)));
+        httpApiMockServer.stubFor(put("/v2/structure")
+                .willReturn(aResponse().withStatus(200)));
+        httpApiMockServer.stubFor(any(urlMatching("/generate-extract")).willReturn(aResponse().withStatus(200)));
         // Day 2 : Compute diff (1 delete)
         LoadProcess p2 = new LoadProcess(new ReadyToComputeDiff(customMetrics));
         registry.register(Integer.toString(registry.nextId()), p2);
@@ -162,7 +164,6 @@ public class UploadingStateTest {
         p2.getState().setProcess(p2);
         p2.nextStep();
         // Day 2 : upload changes (1 delete)
-        String[] exclusions = {"90"};
         p2.setState(new UploadingChanges(exclusions, httpApiMockServer.baseUrl()));
         p2.getState().setProcess(p2);
         p2.nextStep();
@@ -184,13 +185,9 @@ public class UploadingStateTest {
      * @throws Exception the exception
      */
     @Test
-    @DisplayName("Call delete API with return code 404")
-    void uploadChangesDeletePS404() throws Exception {
-        httpApiMockServer.stubFor(delete("/v2/ps/810107592544")
-                .willReturn(aResponse().withStatus(404)));
-        httpApiMockServer.stubFor(put("/v2/structure")
-                .willReturn(aResponse().withStatus(200)));
-        httpApiMockServer.stubFor(any(urlMatching("/generate-extract")).willReturn(aResponse().withStatus(200)));
+    @DisplayName("Call delete API with return code 410")
+    void uploadChangesDeletePS410() throws Exception {
+        httpApiMockServer.stubFor(any(anyUrl()).willReturn(aResponse().withStatus(200)));
         //Test
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         String rootpath = cl.getResource(".").getPath();
@@ -203,9 +200,20 @@ public class UploadingStateTest {
         File extractFile1 = FileUtils.copyFileToWorkspace("Extraction_ProSanteConnect_Personne_activite_202112120513.txt");
         p.setExtractedFilename(extractFile1.getPath());
         p.nextStep();
+        String[] exclusions = {"90"};
+        p.setState(new UploadingChanges(exclusions, httpApiMockServer.baseUrl()));
+        p.getState().setProcess(p);
+        p.nextStep();
         p.setState(new ChangesApplied(customMetrics, httpApiMockServer.baseUrl(), emailService));
         p.getState().setProcess(p);
         p.nextStep();
+
+
+        httpApiMockServer.stubFor(delete("/v2/ps/810107592544")
+                .willReturn(aResponse().withStatus(410)));
+        httpApiMockServer.stubFor(put("/v2/structure")
+                .willReturn(aResponse().withStatus(200)));
+        httpApiMockServer.stubFor(any(urlMatching("/generate-extract")).willReturn(aResponse().withStatus(200)));
         // Day 2 : Compute diff (1 delete)
         LoadProcess p2 = new LoadProcess(new ReadyToComputeDiff(customMetrics));
         registry.register(Integer.toString(registry.nextId()), p2);
@@ -215,7 +223,7 @@ public class UploadingStateTest {
         p2.setState(new DiffComputed(customMetrics));
         p2.nextStep();
         // Day 2 : upload changes (1 delete)
-        String[] exclusions = {"90"};
+
         p2.setState(new UploadingChanges(exclusions, httpApiMockServer.baseUrl()));
         p2.nextStep();
 		OperationMap<String, RassEntity> psToCreate2 = p2.getMaps().stream().filter(map -> map.getOperation().equals(OperationType.PS_CREATE))
@@ -227,7 +235,7 @@ public class UploadingStateTest {
         assertEquals(0, psToCreate2.size());
         assertEquals(1, psToDelete2.size());
         assertEquals(0, psToUpdate2.size());
-        assertEquals(HttpStatus.NOT_FOUND.value(), psToDelete2.get("810107592544").getReturnStatus());
+        assertEquals(HttpStatus.GONE.value(), psToDelete2.get("810107592544").getReturnStatus());
 
     }
 }

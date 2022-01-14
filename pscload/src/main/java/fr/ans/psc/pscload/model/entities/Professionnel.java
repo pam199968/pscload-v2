@@ -3,25 +3,12 @@
  */
 package fr.ans.psc.pscload.model.entities;
 
-import java.util.Optional;
-
 import fr.ans.psc.model.Profession;
 import fr.ans.psc.model.Ps;
 import lombok.EqualsAndHashCode;
 
-/**
- * Can equal.
- *
- * @param other the other
- * @return true, if successful
- */
+import java.util.Optional;
 
-/**
- * Can equal.
- *
- * @param other the other
- * @return true, if successful
- */
 @EqualsAndHashCode(callSuper = true)
 public class Professionnel extends Ps implements RassEntity {
 

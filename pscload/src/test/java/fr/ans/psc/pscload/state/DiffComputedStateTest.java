@@ -71,7 +71,7 @@ public class DiffComputedStateTest {
             }
         }
 
-        httpMockServer.stubFor(any(urlMatching("/generate-extract"))
+        httpMockServer.stubFor(any(anyUrl())
                 .willReturn(aResponse().withStatus(200)));
     }
 
@@ -99,6 +99,10 @@ public class DiffComputedStateTest {
         assertEquals(-1, diffComputed1.getCustomMetrics().getAppSizeGauges().get(
                 SizeMetric.PS_REFERENCE_RPPS_SIZE).get());
 
+        String[] exclusions = { "90" };
+        p.setState(new UploadingChanges(exclusions, httpMockServer.baseUrl()));
+        p.getState().setProcess(p);
+        p.nextStep();
         p.setState(new ChangesApplied(customMetrics, httpMockServer.baseUrl(), emailService));
         p.getState().setProcess(p);
         p.nextStep();

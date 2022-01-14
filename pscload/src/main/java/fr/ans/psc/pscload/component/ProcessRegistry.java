@@ -3,26 +3,22 @@
  */
 package fr.ans.psc.pscload.component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoSerializable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
 import fr.ans.psc.pscload.model.LoadProcess;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
 
 /**
  * The Class ProcessRegistry.
  */
 @Component
+@Slf4j
 public class ProcessRegistry implements  KryoSerializable  {
 	
 

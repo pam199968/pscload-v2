@@ -3,25 +3,20 @@
  */
 package fr.ans.psc.pscload.controller;
 
-import java.io.File;
-import java.util.Optional;
-
+import fr.ans.psc.pscload.component.DuplicateKeyException;
+import fr.ans.psc.pscload.component.ProcessRegistry;
+import fr.ans.psc.pscload.metrics.CustomMetrics;
+import fr.ans.psc.pscload.model.LoadProcess;
+import fr.ans.psc.pscload.state.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import fr.ans.psc.pscload.component.DuplicateKeyException;
-import fr.ans.psc.pscload.component.ProcessRegistry;
-import fr.ans.psc.pscload.model.LoadProcess;
-import fr.ans.psc.pscload.state.ProcessState;
-import fr.ans.psc.pscload.state.ReadyToComputeDiff;
-import fr.ans.psc.pscload.state.ReadyToExtract;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.util.Optional;
 
 /**
  * The Class ProcessController.
@@ -34,6 +29,12 @@ public class TestingController {
 	@Value("${files.directory}")
 	private String filesDirectory;
 
+	@Value("${extract.download.url}")
+	private String extractDownloadUrl;
+
+	@Autowired
+	private CustomMetrics customMetrics;
+
 	/** The registry. */
 	private final ProcessRegistry registry;
 
@@ -41,8 +42,10 @@ public class TestingController {
 	 * The Enum States.
 	 */
 	private enum States {
+		SUBMITTED("Submitted", Submitted.class),
 		READY_TO_EXTRACT("ReadyToExtract", ReadyToExtract.class),
-		READY_TO_COMPUTE_DIFF("ReadyToComputeDiff", ReadyToComputeDiff.class);
+		READY_TO_COMPUTE_DIFF("ReadyToComputeDiff", ReadyToComputeDiff.class),
+		DIFF_COMPUTED("DiffComputed", DiffComputed.class);
 
 		private Class<? extends ProcessState> clazz;
 		private String classname;
@@ -103,17 +106,19 @@ public class TestingController {
 	public ResponseEntity<Void> setState(@RequestParam String id, @RequestParam String state) {
 		ProcessState processState = null;
 		try {
-			if (States.READY_TO_EXTRACT.classname.equals(state)) {
-
-				processState = States.READY_TO_EXTRACT.clazz.getDeclaredConstructor().newInstance();
-
-			} else if (States.READY_TO_COMPUTE_DIFF.classname.equals(state)){
-				processState = States.READY_TO_COMPUTE_DIFF.clazz.getDeclaredConstructor().newInstance();
-			}else {
+			if (States.SUBMITTED.classname.equals(state)) {
+				processState = new Submitted(extractDownloadUrl, filesDirectory);
+			} else if (States.READY_TO_EXTRACT.classname.equals(state)) {
+				processState = new ReadyToExtract();
+			} else if (States.READY_TO_COMPUTE_DIFF.classname.equals(state)) {
+				processState = new ReadyToComputeDiff(customMetrics);
+			} else if (States.DIFF_COMPUTED.classname.equals(state)){
+				processState = new DiffComputed(customMetrics);
+			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception e) {
-			// normaly not reachable
+			// normally not reachable
 			log.error("error when instantiate class",e);
 		}
 		registry.getProcessById(id).setState(processState);

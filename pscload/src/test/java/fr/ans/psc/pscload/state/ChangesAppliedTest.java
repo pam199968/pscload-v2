@@ -3,12 +3,7 @@
  */
 package fr.ans.psc.pscload.state;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.delete;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.put;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -119,15 +114,8 @@ public class ChangesAppliedTest {
     @Test
     @DisplayName("Changes applied with no errors")
     public void changesApplied() throws DuplicateKeyException, IOException, ClassNotFoundException {
-        // SET UP : updates ok, 2 different 4xx on Ps, 5xx on structure
-        httpMockServer.stubFor(post("/v2/ps")
-                .willReturn(aResponse().withStatus(409)));
-        httpMockServer.stubFor(put("/v2/ps")
-                .willReturn(aResponse().withStatus(200)));
-        httpMockServer.stubFor(delete("/v2/ps/810107592585")
-                .willReturn(aResponse().withStatus(404)));
-        httpMockServer.stubFor(post("/v2/structure")
-                .willReturn(aResponse().withStatus(500)));
+        httpMockServer.stubFor(post("/v2/ps").willReturn(aResponse().withStatus(200)));
+        httpMockServer.stubFor(post("/v2/structure").willReturn(aResponse().withStatus(200)));
 
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         String rootpath = cl.getResource("work").getPath();
@@ -140,9 +128,23 @@ public class ChangesAppliedTest {
         File extractFile1 = FileUtils.copyFileToWorkspace("Extraction_ProSanteConnect_Personne_activite_202112120512.txt");
         p.setExtractedFilename(extractFile1.getPath());
         p.nextStep();
+        String[] exclusions = {"90"};
+        p.setState(new UploadingChanges(exclusions, httpMockServer.baseUrl()));
+        p.getState().setProcess(p);
+        p.nextStep();
         p.setState(new ChangesApplied(customMetrics, httpMockServer.baseUrl(), emailService) );
         p.getState().setProcess(p);
         p.nextStep();
+
+        // SET UP : updates ok, 2 different 4xx on Ps, 5xx on structure
+        httpMockServer.stubFor(post("/v2/ps")
+                .willReturn(aResponse().withStatus(409)));
+        httpMockServer.stubFor(put("/v2/ps")
+                .willReturn(aResponse().withStatus(200)));
+        httpMockServer.stubFor(delete("/v2/ps/810107592585")
+                .willReturn(aResponse().withStatus(410)));
+        httpMockServer.stubFor(post("/v2/structure")
+                .willReturn(aResponse().withStatus(500)));
         // Day 2 : Compute diff
         LoadProcess p2 = new LoadProcess(new ReadyToComputeDiff(customMetrics));
         registry.register(Integer.toString(registry.nextId()), p2);
@@ -152,7 +154,7 @@ public class ChangesAppliedTest {
         p2.setState(new DiffComputed(customMetrics));
         p2.nextStep();
         // Day 2 : upload changes
-        String[] exclusions = {"90"};
+
         p2.setState(new UploadingChanges(exclusions, httpMockServer.baseUrl()));
         p2.getState().setProcess(p2);
         p2.nextStep();
@@ -171,7 +173,7 @@ public class ChangesAppliedTest {
         assertEquals(0, psToUpdate.size());
         assertEquals(1, structureToCreate.size());
         assertEquals(HttpStatus.CONFLICT.value(), psToCreate.get("810100375103").getReturnStatus());
-        assertEquals(HttpStatus.NOT_FOUND.value(), psToDelete.get("810107592585").getReturnStatus());
+        assertEquals(HttpStatus.GONE.value(), psToDelete.get("810107592585").getReturnStatus());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), structureToCreate.get("R10100000063415").getReturnStatus());
 
         // Apply changes and generate new ser

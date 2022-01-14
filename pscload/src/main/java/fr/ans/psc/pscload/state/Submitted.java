@@ -3,29 +3,12 @@
  */
 package fr.ans.psc.pscload.state;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import fr.ans.psc.pscload.state.exception.DownloadException;
+import fr.ans.psc.pscload.state.exception.LoadProcessException;
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -34,13 +17,19 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-
-import fr.ans.psc.pscload.state.exception.DownloadException;
-import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import lombok.extern.slf4j.Slf4j;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.*;
+import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * The Class Idle.

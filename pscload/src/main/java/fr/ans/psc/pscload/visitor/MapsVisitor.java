@@ -3,11 +3,7 @@
  */
 package fr.ans.psc.pscload.visitor;
 
-import fr.ans.psc.pscload.model.operations.PsCreateMap;
-import fr.ans.psc.pscload.model.operations.PsDeleteMap;
-import fr.ans.psc.pscload.model.operations.PsUpdateMap;
-import fr.ans.psc.pscload.model.operations.StructureCreateMap;
-import fr.ans.psc.pscload.model.operations.StructureUpdateMap;
+import fr.ans.psc.pscload.model.operations.*;
 
 /**
  * The Interface MapsUploaderVisitor.

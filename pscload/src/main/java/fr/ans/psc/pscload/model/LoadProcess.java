@@ -3,19 +3,10 @@
  */
 package fr.ans.psc.pscload.model;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoSerializable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
 import fr.ans.psc.pscload.model.entities.RassEntity;
 import fr.ans.psc.pscload.model.operations.OperationMap;
 import fr.ans.psc.pscload.model.operations.OperationMapFactory;
@@ -24,6 +15,10 @@ import fr.ans.psc.pscload.state.exception.LoadProcessException;
 import fr.ans.psc.pscload.visitor.OperationType;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * The Class LoadProcess.
@@ -51,6 +46,7 @@ public class LoadProcess implements KryoSerializable {
 	 */
 	public LoadProcess() {
 		super();
+		init();
 	}
 
 	/**

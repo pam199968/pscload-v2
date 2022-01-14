@@ -3,21 +3,15 @@
  */
 package fr.ans.psc.pscload.visitor;
 
-import java.util.Collection;
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-
 import fr.ans.psc.pscload.model.MapsHandler;
 import fr.ans.psc.pscload.model.entities.Professionnel;
 import fr.ans.psc.pscload.model.entities.RassEntity;
 import fr.ans.psc.pscload.model.entities.Structure;
-import fr.ans.psc.pscload.model.operations.OperationMap;
-import fr.ans.psc.pscload.model.operations.PsCreateMap;
-import fr.ans.psc.pscload.model.operations.PsDeleteMap;
-import fr.ans.psc.pscload.model.operations.PsUpdateMap;
-import fr.ans.psc.pscload.model.operations.StructureCreateMap;
-import fr.ans.psc.pscload.model.operations.StructureUpdateMap;
+import fr.ans.psc.pscload.model.operations.*;
+import org.springframework.http.HttpStatus;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * The Class MapsCleanerVisitorImpl.
@@ -43,8 +37,8 @@ public class MapsCleanerVisitorImpl implements MapsVisitor {
 	public void visit(PsCreateMap map) {
 		Collection<RassEntity> items = map.values();
 		items.forEach(item -> {
-			if (is5xxError(item.getReturnStatus())) {
-				generateReportLine(map, report, item);
+			generateReportLine(map, report, item);
+			if (isInconsistentWithDatabase(item.getReturnStatus())) {
 				maps.getPsMap().remove(item.getInternalId());
 			}
 		});
@@ -54,8 +48,8 @@ public class MapsCleanerVisitorImpl implements MapsVisitor {
 	public void visit(PsUpdateMap map) {
 		Collection<RassEntity> items = map.values();
 		items.forEach(item -> {
-			if (is5xxError(item.getReturnStatus())) {
-				generateReportLine(map, report, item);
+			generateReportLine(map, report, item);
+			if (isInconsistentWithDatabase(item.getReturnStatus())) {
 				maps.getPsMap().replace(item.getInternalId(), (Professionnel) map.getOldValue(item.getInternalId()));
 			}
 		});
@@ -65,8 +59,8 @@ public class MapsCleanerVisitorImpl implements MapsVisitor {
 	public void visit(PsDeleteMap map) {
 		Collection<RassEntity> items = map.values();
 		items.forEach(item -> {
-			if (is5xxError(item.getReturnStatus())) {
-				generateReportLine(map, report, item);
+			generateReportLine(map, report, item);
+			if (isInconsistentWithDatabase(item.getReturnStatus())) {
 				maps.getPsMap().put(item.getInternalId(), (Professionnel) item);
 			}
 		});
@@ -76,8 +70,8 @@ public class MapsCleanerVisitorImpl implements MapsVisitor {
 	public void visit(StructureCreateMap map) {
 		Collection<RassEntity> items = map.values();
 		items.forEach(item -> {
-			if (is5xxError(item.getReturnStatus())) {
-				generateReportLine(map, report, item);
+			generateReportLine(map, report, item);
+			if (isInconsistentWithDatabase(item.getReturnStatus())) {
 				maps.getStructureMap().remove(item.getInternalId());
 			}
 		});
@@ -88,15 +82,18 @@ public class MapsCleanerVisitorImpl implements MapsVisitor {
 	public void visit(StructureUpdateMap map) {
 		Collection<RassEntity> items = map.values();
 		items.forEach(item -> {
-			if (is5xxError(item.getReturnStatus())) {
-				generateReportLine(map, report, item);
+			generateReportLine(map, report, item);
+			if (isInconsistentWithDatabase(item.getReturnStatus())) {
 				maps.getStructureMap().replace(item.getInternalId(), (Structure) map.getOldValue(item.getInternalId()));
 			}
 		});
 	}
 
-	private boolean is5xxError(int rawReturnStatus) {
-		return HttpStatus.valueOf(rawReturnStatus).is5xxServerError();
+	private boolean isInconsistentWithDatabase(int rawReturnStatus) {
+		HttpStatus status = HttpStatus.valueOf(rawReturnStatus);
+
+		// CONFLICT and GONE mean that the db is already in the state we want
+		return !status.equals(HttpStatus.CONFLICT) && !status.equals(HttpStatus.GONE);
 	}
 
 	private void generateReportLine(OperationMap<String, RassEntity> map, List<String> report, RassEntity item) {

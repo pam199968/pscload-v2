@@ -3,23 +3,22 @@
  */
 package fr.ans.psc.pscload.component;
 
+import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.EmailTemplate;
+import fr.ans.psc.pscload.model.LoadProcess;
 import fr.ans.psc.pscload.model.Stage;
 import fr.ans.psc.pscload.service.EmailService;
-import fr.ans.psc.pscload.model.LoadProcess;
 import fr.ans.psc.pscload.state.*;
 import fr.ans.psc.pscload.state.exception.ExtractTriggeringException;
+import fr.ans.psc.pscload.state.exception.LoadProcessException;
+import fr.ans.psc.pscload.state.exception.SerFileGenerationException;
 import fr.ans.psc.pscload.state.exception.UploadException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import fr.ans.psc.pscload.metrics.CustomMetrics;
-import fr.ans.psc.pscload.state.exception.SerFileGenerationException;
-import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.time.Duration;
@@ -114,15 +113,16 @@ public class Runner {
                     // check if differences exists
                     if (process.isRemainingPsOrStructuresInMaps()) {
                         process.setState(new DiffComputed(customMetrics));
-                        customMetrics.setStageMetric(Stage.DIFF_COMPUTED);
                         // Step 3 : publish metrics
                         process.nextStep();
+                        customMetrics.setStageMetric(Stage.DIFF_COMPUTED);
                         // End of scheduled steps
                     } else {
                     	File txtfile = new File(process.getExtractedFilename());
                     	txtfile.delete();
                     	File lockfile = new File(process.getTmpMapsPath());
                     	lockfile.delete();
+                    	log.info("No differences with previous upload, unregistering process...");
                         processRegistry.unregister(id);
                     }
                 } catch (LoadProcessException e) {

@@ -3,16 +3,14 @@
  */
 package fr.ans.psc.pscload.controller;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-
+import fr.ans.psc.pscload.component.ProcessRegistry;
+import fr.ans.psc.pscload.component.Runner;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
+import fr.ans.psc.pscload.model.LoadProcess;
+import fr.ans.psc.pscload.model.ProcessInfo;
 import fr.ans.psc.pscload.service.EmailService;
 import fr.ans.psc.pscload.state.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -20,13 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.async.DeferredResult;
 
-import fr.ans.psc.pscload.component.ProcessRegistry;
-import fr.ans.psc.pscload.component.Runner;
-import fr.ans.psc.pscload.model.LoadProcess;
-import fr.ans.psc.pscload.model.ProcessInfo;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Class ProcessController.
@@ -86,8 +81,10 @@ public class ProcessController {
                 return result;
             }
             // Conflict if process is not in the expected state.
+            log.warn("can't continue: process is not at DiffComputed state");
             result = new ResponseEntity<>(HttpStatus.CONFLICT);
         } else {
+            log.warn("can't continue: no process is registered");
             result = new ResponseEntity<>(HttpStatus.TOO_EARLY);
         }
         return result;
@@ -127,8 +124,17 @@ public class ProcessController {
      */
     @PostMapping(value = "/process/abort")
     public ResponseEntity<Void> abortProcess() {
+        LoadProcess process = registry.getCurrentProcess();
+        if (process != null) {
+            if (process.getTmpMapsPath() != null) {
+                File lockFile = new File(process.getTmpMapsPath());
+                lockFile.delete();
+                log.info("lock file deleted");
+            }
+        }
         registry.clear();
-        return null;
+        log.info("registry cleared");
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /**

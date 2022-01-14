@@ -3,14 +3,14 @@
  */
 package fr.ans.psc.pscload.model.operations;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import fr.ans.psc.pscload.model.entities.RassEntity;
 import fr.ans.psc.pscload.visitor.OperationType;
 import fr.ans.psc.pscload.visitor.Visitable;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The Class OperationMap.

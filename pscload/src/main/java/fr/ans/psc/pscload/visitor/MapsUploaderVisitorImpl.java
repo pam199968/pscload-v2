@@ -3,16 +3,6 @@
  */
 package fr.ans.psc.pscload.visitor;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
-
 import fr.ans.psc.ApiClient;
 import fr.ans.psc.api.PsApi;
 import fr.ans.psc.api.StructureApi;
@@ -20,13 +10,18 @@ import fr.ans.psc.model.Profession;
 import fr.ans.psc.pscload.model.entities.Professionnel;
 import fr.ans.psc.pscload.model.entities.RassEntity;
 import fr.ans.psc.pscload.model.entities.Structure;
-import fr.ans.psc.pscload.model.operations.PsCreateMap;
-import fr.ans.psc.pscload.model.operations.PsDeleteMap;
-import fr.ans.psc.pscload.model.operations.PsUpdateMap;
-import fr.ans.psc.pscload.model.operations.StructureCreateMap;
-import fr.ans.psc.pscload.model.operations.StructureUpdateMap;
+import fr.ans.psc.pscload.model.operations.*;
 import fr.ans.psc.pscload.state.exception.UploadException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The Class MapsUploaderVisitorImpl.
@@ -91,9 +86,9 @@ public class MapsUploaderVisitorImpl implements MapsVisitor {
 				});
 				if (deletable.get()) {
 					psApi.deletePsById(URLEncoder.encode(item.getInternalId(), StandardCharsets.UTF_8));
-					// remove PS from map if status 2xx
-					map.remove(item.getInternalId());
 				}
+				// remove anyway : extract Ps from maps either successful or ignored
+				map.remove(item.getInternalId());
 			} catch (RestClientResponseException e) {
 				log.error("error when {} : {}, return code : {}", map.getOperation().toString(), item.getInternalId(),
 						e.getLocalizedMessage());

@@ -3,14 +3,22 @@
  */
 package fr.ans.psc.pscload;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.KryoException;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import fr.ans.psc.pscload.component.ProcessRegistry;
+import fr.ans.psc.pscload.metrics.CustomMetrics;
+import fr.ans.psc.pscload.model.LoadProcess;
+import fr.ans.psc.pscload.model.Stage;
 import fr.ans.psc.pscload.service.EmailService;
+import fr.ans.psc.pscload.state.ChangesApplied;
+import fr.ans.psc.pscload.state.ProcessState;
+import fr.ans.psc.pscload.state.UploadingChanges;
+import fr.ans.psc.pscload.state.exception.LoadProcessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -24,19 +32,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-
-import fr.ans.psc.pscload.component.ProcessRegistry;
-import fr.ans.psc.pscload.metrics.CustomMetrics;
-import fr.ans.psc.pscload.model.LoadProcess;
-import fr.ans.psc.pscload.state.ChangesApplied;
-import fr.ans.psc.pscload.state.ProcessState;
-import fr.ans.psc.pscload.state.UploadingChanges;
-import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import lombok.extern.slf4j.Slf4j;
+import java.io.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The Class PscloadApplication.
@@ -66,6 +64,15 @@ public class PscloadApplication {
 
 	@Value("${pscextract.base.url}")
 	private String pscextractBaseUrl;
+
+	@Value("${debug:false}")
+	private boolean debug;
+
+	@Value("${deactivation.excluded.profession.codes}")
+	private String[] excludedProfessions;
+
+	@Value("${api.base.url}")
+	private String apiBaseUrl;
 
 	/**
 	 * The main method.
@@ -104,6 +111,7 @@ public class PscloadApplication {
 					registry.read(kryo, input);
 					input.close();
 					registryFile.delete();
+					log.info("Registry restored");
 				} catch (IOException | KryoException e) {
 					log.warn("Unable to restore registry, start with an empty registry", e);
 					registryFile.delete();
@@ -119,13 +127,16 @@ public class PscloadApplication {
 								try {
 									if (stateClass.equals(UploadingChanges.class)) {
 										// upload changes
-										customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(60);
+										customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE)
+												.set(Stage.UPLOAD_CHANGES_STARTED.value);
+
+										process.setState(new UploadingChanges(excludedProfessions, apiBaseUrl));
 										process.nextStep();
-										process.setState(new ChangesApplied(customMetrics, pscextractBaseUrl, emailService));
-										process.getState().setProcess(process);
+
 									}
 									customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(70);
 									// Step 5 : call pscload
+									process.setState(new ChangesApplied(customMetrics, pscextractBaseUrl, emailService));
 									process.nextStep();
 									registry.unregister(process.getId());
 									customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
@@ -169,6 +180,14 @@ public class PscloadApplication {
 					Output output = new Output(fileOutputStream);
 					registry.write(kryo, output);
 					output.close();
+
+					if (debug) {
+						Writer writer = new FileWriter(filesDirectory + File.separator + "registry.json");
+						Gson gson = new GsonBuilder().setPrettyPrinting().create();
+						gson.toJson(registry, writer);
+						writer.flush();
+						writer.close();
+					}
 				} catch (IOException e) {
 					log.error("Unable to save registry", e);
 				} 

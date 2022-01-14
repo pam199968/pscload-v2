@@ -3,6 +3,13 @@
  */
 package fr.ans.psc.pscload.state;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import fr.ans.psc.pscload.state.exception.ExtractException;
+import fr.ans.psc.pscload.state.exception.LoadProcessException;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,24 +17,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-
-import fr.ans.psc.pscload.state.exception.ExtractException;
-import fr.ans.psc.pscload.state.exception.LoadProcessException;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * The Class FileDownloaded.

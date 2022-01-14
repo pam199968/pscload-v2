@@ -3,44 +3,26 @@
  */
 package fr.ans.psc.pscload.model;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-import com.univocity.parsers.common.DataProcessingException;
-import org.apache.any23.encoding.TikaEncodingDetector;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoSerializable;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.univocity.parsers.common.DataProcessingException;
 import com.univocity.parsers.common.ParsingContext;
 import com.univocity.parsers.common.processor.ObjectRowProcessor;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-
 import fr.ans.psc.model.Profession;
-import fr.ans.psc.pscload.model.entities.ExerciceProfessionnel;
-import fr.ans.psc.pscload.model.entities.Professionnel;
-import fr.ans.psc.pscload.model.entities.RassItems;
-import fr.ans.psc.pscload.model.entities.RefStructure;
-import fr.ans.psc.pscload.model.entities.SavoirFaire;
-import fr.ans.psc.pscload.model.entities.SituationExercice;
-import fr.ans.psc.pscload.model.entities.Structure;
+import fr.ans.psc.pscload.model.entities.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.any23.encoding.TikaEncodingDetector;
+
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.*;
 
 /**
  * The Class MapsHandler.
@@ -70,9 +52,9 @@ public class MapsHandler implements KryoSerializable {
 		kryo.register(SituationExercice.class, 14);
 		kryo.register(RefStructure.class, 15);
 		kryo.register(Structure.class, 16);
-		}
+	}
 
-	private static final int ROW_LENGTH = 50;
+	private static final int ROW_LENGTH = RassItems.values().length + 1;
 
 	private Map<String, Professionnel> psMap = new HashMap<>();
 

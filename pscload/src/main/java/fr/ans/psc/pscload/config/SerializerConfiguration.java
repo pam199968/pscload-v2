@@ -3,38 +3,18 @@
  */
 package fr.ans.psc.pscload.config;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-
+import com.esotericsoftware.kryo.Kryo;
+import fr.ans.psc.pscload.component.ProcessRegistry;
+import fr.ans.psc.pscload.model.LoadProcess;
+import fr.ans.psc.pscload.model.entities.*;
+import fr.ans.psc.pscload.model.operations.*;
+import fr.ans.psc.pscload.state.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.esotericsoftware.kryo.Kryo;
-
-import fr.ans.psc.pscload.component.ProcessRegistry;
-import fr.ans.psc.pscload.model.LoadProcess;
-import fr.ans.psc.pscload.model.entities.ExerciceProfessionnel;
-import fr.ans.psc.pscload.model.entities.Professionnel;
-import fr.ans.psc.pscload.model.entities.RefStructure;
-import fr.ans.psc.pscload.model.entities.SavoirFaire;
-import fr.ans.psc.pscload.model.entities.SituationExercice;
-import fr.ans.psc.pscload.model.entities.Structure;
-import fr.ans.psc.pscload.model.operations.OperationMap;
-import fr.ans.psc.pscload.model.operations.PsCreateMap;
-import fr.ans.psc.pscload.model.operations.PsDeleteMap;
-import fr.ans.psc.pscload.model.operations.PsUpdateMap;
-import fr.ans.psc.pscload.model.operations.StructureCreateMap;
-import fr.ans.psc.pscload.model.operations.StructureUpdateMap;
-import fr.ans.psc.pscload.state.ChangesApplied;
-import fr.ans.psc.pscload.state.DiffComputed;
-import fr.ans.psc.pscload.state.ProcessState;
-import fr.ans.psc.pscload.state.ReadyToComputeDiff;
-import fr.ans.psc.pscload.state.ReadyToExtract;
-import fr.ans.psc.pscload.state.SerializationInterrupted;
-import fr.ans.psc.pscload.state.Submitted;
-import fr.ans.psc.pscload.state.UploadInterrupted;
-import fr.ans.psc.pscload.state.UploadingChanges;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Class SerializerConfiguration.
