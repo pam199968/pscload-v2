@@ -92,5 +92,5 @@ variable "dockerfile_path" {
 
 variable "registry_path" {
   type = string
-  default = "registry.repo.proxy-dev-forge.asip.hst.fluxus.net/prosanteconnect"
+  default = "registry.repo.docker.proxy-prod-forge.asip.hst.fluxus.net/prosanteconnect"
 }
